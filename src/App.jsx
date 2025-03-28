@@ -1,8 +1,12 @@
+// App.jsx
+import React from "react";
+import Panel from "./components/Panel";
+
 function App() {
   return (
-    <>
-      <div className="bg-red-500">TEST</div>
-    </>
+    <div>
+      <Panel />
+    </div>
   );
 }
 

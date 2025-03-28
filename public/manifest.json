@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "VIN Recall Checker Toggle",
+  "version": "1.1",
+  "description": "Toggle a panel to enter VINs and check recall info with authentication and inventory integration.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://vinrcl.safercar.gov/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Toggle VIN Panel"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://vinrcl.safercar.gov/vin/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_end"
+    }
+  ]
+}

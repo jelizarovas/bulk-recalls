@@ -1,19 +1,18 @@
-// src/components/Panel.jsx
+/* global chrome */
 import React, { useState, useEffect, useRef } from "react";
-import {
-  loadVinList,
-  loadCurrentIndex,
-  saveCurrentIndex,
-} from "../utils/storage";
+import VinProvider from "../components/VinProvider";
+import { useVinContext } from "../utils/useVinContext";
+import { loadCurrentIndex, saveCurrentIndex } from "../utils/storage";
 import { autoParseResults } from "../utils/parse";
 import VinTable from "./VinTable";
 import Controls from "./Controls";
 
-function Panel() {
+function PanelContent() {
   // Panel visibility state.
   const [visible, setVisible] = useState(true);
-  // List of VINs and current index.
-  const [vinList, setVinList] = useState([]);
+  // Get VIN list and update function from context.
+  const { vinList, updateVin } = useVinContext();
+  // Manage currentIndex locally.
   const [currentIndex, setCurrentIndex] = useState(0);
   // Panel width state (in pixels).
   const [width, setWidth] = useState(350);
@@ -23,17 +22,15 @@ function Panel() {
   const hasParsed = useRef(false);
   const panelRef = useRef(null);
 
-  // Refresh the local state from localStorage.
-  const refreshList = () => {
-    const list = loadVinList();
-    const idx = loadCurrentIndex();
-    setVinList(list);
-    setCurrentIndex(idx);
-  };
-
-  // Load VIN list on mount.
+  // Debug: log the current visible state.
   useEffect(() => {
-    refreshList();
+    console.log("Panel visible:", visible);
+  }, [visible]);
+
+  // Load currentIndex on mount.
+  useEffect(() => {
+    const idx = loadCurrentIndex();
+    setCurrentIndex(idx);
   }, []);
 
   // Persist currentIndex to localStorage whenever it changes.
@@ -50,18 +47,37 @@ function Panel() {
     ) {
       const parsedData = autoParseResults(); // Expects { year, make, model, recallCount } or null.
       if (parsedData) {
-        const updatedList = [...vinList];
-        updatedList[currentIndex] = {
-          ...updatedList[currentIndex],
+        updateVin(currentIndex, {
+          ...vinList[currentIndex],
           ...parsedData,
           status: "Processed",
-        };
-        localStorage.setItem("vinList", JSON.stringify(updatedList));
-        setVinList(updatedList);
+        });
       }
       hasParsed.current = true;
     }
-  }, [vinList, currentIndex]);
+  }, [vinList, currentIndex, updateVin]);
+
+  // Listen for messages from the background script to toggle panel visibility.
+  useEffect(() => {
+    if (
+      typeof chrome !== "undefined" &&
+      chrome.runtime &&
+      chrome.runtime.onMessage
+    ) {
+      const messageHandler = (msg) => {
+        console.log("Received message:", msg);
+        if (msg.togglePanel) {
+          setVisible((prev) => !prev);
+        }
+      };
+
+      chrome.runtime.onMessage.addListener(messageHandler);
+      return () => {
+        chrome.runtime.onMessage.removeListener(messageHandler);
+      };
+    }
+    return undefined;
+  }, []);
 
   // When the panel is visible, update the page margin-right to "squeeze in" the content.
   useEffect(() => {
@@ -79,9 +95,7 @@ function Panel() {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (dragging) {
-        // Calculate new width based on distance from the right edge.
         let newWidth = window.innerWidth - e.clientX;
-        // Enforce minimum and maximum widths.
         if (newWidth < 200) newWidth = 200;
         if (newWidth > 600) newWidth = 600;
         setWidth(newWidth);
@@ -100,7 +114,7 @@ function Panel() {
     };
   }, [dragging]);
 
-  // Toggle panel visibility.
+  // Toggle panel visibility from the in-panel toggle button.
   const togglePanel = () => {
     setVisible((prev) => !prev);
   };
@@ -108,15 +122,20 @@ function Panel() {
   return (
     <div
       ref={panelRef}
-      style={{ display: visible ? "block" : "none", width: `${width}px` }}
+      style={{
+        width: visible ? `${width}px` : "0px",
+        transition: "width 0.3s ease",
+        overflow: "hidden",
+      }}
       className="fixed top-0 right-0 h-screen bg-gray-900 text-white p-4 z-50"
     >
       {/* Draggable handle on the left edge */}
       <div
         className="absolute left-0 top-0 h-full w-2 cursor-ew-resize"
         onMouseDown={(e) => {
-            e.preventDefault();
-            setDragging(true)}}
+          e.preventDefault();
+          setDragging(true);
+        }}
       ></div>
 
       <div className="flex justify-between items-center mb-4">
@@ -128,16 +147,23 @@ function Panel() {
           Toggle
         </button>
       </div>
-      {/* Controls component handles adding VINs, starting processing, etc. */}
-      <Controls refreshList={refreshList} />
-      {/* VinTable displays the list of VINs */}
-      <VinTable vinList={vinList} />
+      {/* Controls and VinTable now use the VIN context internally */}
+      <Controls />
+      <VinTable />
       <div className="mt-2 text-sm">
         <p>
           Current Index: <span className="font-bold">{currentIndex}</span>
         </p>
       </div>
     </div>
+  );
+}
+
+function Panel() {
+  return (
+    <VinProvider>
+      <PanelContent />
+    </VinProvider>
   );
 }
 

@@ -1,14 +1,10 @@
-// components/VinTable.jsx
-import React, { useState, useEffect } from "react";
+// src/components/VinTable.jsx
+import React from "react";
 import VinRow from "./VinRow";
-import { loadVinList } from "../utils/storage";
+import { useVinContext } from "../utils/useVinContext";
 
 function VinTable() {
-  const [vinList, setVinList] = useState([]);
-
-  useEffect(() => {
-    setVinList(loadVinList());
-  }, []);
+  const { vinList } = useVinContext();
 
   return (
     <table className="w-full text-sm">

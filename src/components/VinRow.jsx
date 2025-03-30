@@ -1,12 +1,12 @@
-// components/VinRow.jsx
+// src/components/VinRow.jsx
 import React from "react";
-import { removeVin } from "../utils/storage";
+import { useVinContext } from "../utils/useVinContext";
 
 function VinRow({ item, index }) {
+  const { removeVin } = useVinContext();
+
   const handleRemove = () => {
     removeVin(index);
-    // Optionally, trigger a re-render in parent (or use context / state management)
-    window.location.reload(); // Quick hack; better to use state lifting in a full app
   };
 
   return (

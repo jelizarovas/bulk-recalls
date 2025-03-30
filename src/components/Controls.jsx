@@ -1,22 +1,17 @@
-// Controls.jsx
+// src/components/Controls.jsx
 import React, { useState } from "react";
-import {
-  addVin,
-  startProcessing,
-  clearAll,
-  downloadCsv,
-} from "../utils/storage";
+import { useVinContext } from "../utils/useVinContext";
+
 import { MdAddCircleOutline } from "react-icons/md";
 
-function Controls({ refreshList }) {
+function Controls() {
+  const { addVin, startProcessing, clearAll, downloadCsv } = useVinContext();
   const [vinInput, setVinInput] = useState("");
 
   const handleAddVin = () => {
     if (vinInput.trim()) {
       addVin(vinInput.trim());
       setVinInput("");
-      // Refresh the parent's VIN list state immediately
-      refreshList();
     }
   };
 

@@ -20,7 +20,7 @@ A modern Chrome extension built with **React**, **Vite**, **Tailwind CSS**, and 
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/bulk-recalls.git
+   git clone https://github.com/jelizarovas/bulk-recalls.git
    cd bulk-recalls
    🤩 Clone the repo and enter the project directory!
    ```

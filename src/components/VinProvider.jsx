@@ -48,6 +48,55 @@ const VinProvider = ({ children }) => {
     }
   };
 
+  // Stop processing: mark the current VIN as paused.
+  const stopProcessing = () => {
+    const idxStr = localStorage.getItem("currentVinIndex");
+    const currentIndex = idxStr ? parseInt(idxStr, 10) : 0;
+    if (currentIndex < vinList.length) {
+      const newList = vinList.map((item, index) =>
+        index === currentIndex ? { ...item, status: "Paused" } : item
+      );
+      setVinList(newList);
+      updateStorage(newList);
+      localStorage.setItem("processingPaused", "true");
+    }
+  };
+
+  // Restart processing: remove the paused flag and resume processing.
+  const restartProcessing = () => {
+    localStorage.removeItem("processingPaused");
+    const idxStr = localStorage.getItem("currentVinIndex");
+    const currentIndex = idxStr ? parseInt(idxStr, 10) : 0;
+    if (currentIndex < vinList.length) {
+      const newList = vinList.map((item, index) =>
+        // Only resume if the current item is paused.
+        index === currentIndex && item.status === "Paused"
+          ? { ...item, status: "Awaiting submission" }
+          : item
+      );
+      setVinList(newList);
+      updateStorage(newList);
+    }
+  };
+
+  // Import CSV: parse CSV string and update the VIN list.
+  const importCsv = (csvContent) => {
+    // Split the CSV content into lines and remove any empty lines.
+    let lines = csvContent.split(/\r?\n/).filter((line) => line.trim() !== "");
+    // Check if the first line is a header and remove it.
+    if (lines.length && lines[0].toLowerCase().includes("vin")) {
+      lines.shift();
+    }
+    // Parse each line. Expecting the order: vin,year,make,model,status,recallCount.
+    const importedList = lines.map((line) => {
+      const fields = line.split(",");
+      const [vin, year, make, model, status, recallCount] = fields;
+      return { vin, year, make, model, status, recallCount };
+    });
+    setVinList(importedList);
+    updateStorage(importedList);
+  };
+
   const downloadCsv = () => {
     let csv = "vin,year,make,model,status,recallCount\n";
     vinList.forEach((item) => {
@@ -92,7 +141,10 @@ const VinProvider = ({ children }) => {
         startProcessing,
         downloadCsv,
         updateVin,
-        setVinList, // Exposed in case you need it.
+        setVinList,
+        importCsv,
+        restartProcessing,
+        stopProcessing,
       }}
     >
       {children}

@@ -11,7 +11,7 @@ function PanelContent() {
   // Panel visibility state.
   const [visible, setVisible] = useState(true);
   // Get VIN list and update function from context.
-  const { vinList, updateVin } = useVinContext();
+  const { vinList, updateVin, clearAll, downloadCsv } = useVinContext();
   // Manage currentIndex locally.
   const [currentIndex, setCurrentIndex] = useState(0);
   // Panel width state (in pixels).
@@ -139,13 +139,10 @@ function PanelContent() {
       ></div>
 
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Bulk Recalls</h2>
-        <button
-          onClick={togglePanel}
-          className="px-2 py-1 bg-gray-700 rounded text-sm hover:bg-gray-600"
-        >
-          Toggle
-        </button>
+        <h2 className="text-xl font-bold">Recalls</h2>
+        <PanelButton onClick={togglePanel} label="Toggle" />
+        <PanelButton onClick={clearAll} label="Clear All" />
+        <PanelButton onClick={downloadCsv} label="Download" />
       </div>
       {/* Controls and VinTable now use the VIN context internally */}
       <Controls />
@@ -168,3 +165,14 @@ function Panel() {
 }
 
 export default Panel;
+
+function PanelButton({ onClick, label }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-2 py-1 bg-gray-700 rounded text-sm hover:bg-gray-600 cursor-pointer"
+    >
+      {label}
+    </button>
+  );
+}

@@ -7,7 +7,7 @@ import tailwindStyles from "./index.css?inline";
 // Create a host element and append it to the body
 const host = document.createElement("div");
 // Initially hide the host; you can set it to "block" if you want it visible by default
-host.style.display = "none";
+host.style.display = "block";
 document.body.appendChild(host);
 
 // Attach a shadow root to the host

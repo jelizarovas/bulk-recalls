@@ -38,6 +38,17 @@ const VinProvider = ({ children }) => {
     const idxStr = localStorage.getItem("currentVinIndex");
     const currentIndex = idxStr ? parseInt(idxStr, 10) : 0;
     if (currentIndex < vinList.length) {
+      const vinToSubmit = vinList[currentIndex].vin;
+
+      // Update the field on the webpage (only works if it's the right page)
+      const vinInput = document.getElementById("VIN");
+      if (vinInput) {
+        vinInput.value = vinToSubmit;
+        vinInput.dispatchEvent(new Event("input", { bubbles: true }));
+      } else {
+        console.warn("VIN input field not found on this page");
+      }
+
       const newList = vinList.map((item, index) =>
         index === currentIndex
           ? { ...item, status: "Awaiting submission" }

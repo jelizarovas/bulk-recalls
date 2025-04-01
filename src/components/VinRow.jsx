@@ -1,6 +1,7 @@
 // src/components/VinRow.jsx
 import React from "react";
 import { useVinContext } from "../utils/useVinContext";
+import { MdDeleteForever } from "react-icons/md";
 
 function VinRow({ item, index }) {
   const { removeVin } = useVinContext();
@@ -19,13 +20,16 @@ function VinRow({ item, index }) {
           }`}</div>
         )}
       </td>
-      <td className="py-1 border-b border-gray-700">
+      <td className=" items-center justify-center border-b border-gray-700">
         {item.status}
         {item.status === "Processed" && (
           <div>Recalls: {item.recallCount || 0}</div>
         )}
-        <button className="mt-1 text-red-400" onClick={handleRemove}>
-          Remove
+        <button
+          className="text-xl cursor-pointer mx-2 text-red-400"
+          onClick={handleRemove}
+        >
+          <MdDeleteForever />
         </button>
       </td>
     </tr>

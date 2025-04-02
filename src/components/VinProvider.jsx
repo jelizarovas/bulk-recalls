@@ -35,12 +35,23 @@ const VinProvider = ({ children }) => {
   };
 
   const startProcessing = () => {
+    // 1) Check if multiBrand is visible.
+    const multiBrandDiv = document.getElementById("multiBrand");
+    if (multiBrandDiv && multiBrandDiv.style.display !== "none") {
+      alert(
+        "Multiple brand options are available for this VIN. Please select a brand on the page before proceeding."
+      );
+      // Return early so we don't fill the VIN or set status yet.
+      return;
+    }
+
+    // 2) If multiBrand is not visible, proceed with your normal logic.
     const idxStr = localStorage.getItem("currentVinIndex");
     const currentIndex = idxStr ? parseInt(idxStr, 10) : 0;
     if (currentIndex < vinList.length) {
       const vinToSubmit = vinList[currentIndex].vin;
 
-      // Update the field on the webpage (only works if it's the right page)
+      // Update the VIN field on the webpage.
       const vinInput = document.getElementById("VIN");
       if (vinInput) {
         vinInput.value = vinToSubmit;
@@ -49,6 +60,7 @@ const VinProvider = ({ children }) => {
         console.warn("VIN input field not found on this page");
       }
 
+      // Update the status for the current VIN.
       const newList = vinList.map((item, index) =>
         index === currentIndex
           ? { ...item, status: "Awaiting submission" }

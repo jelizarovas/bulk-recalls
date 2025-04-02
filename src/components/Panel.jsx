@@ -7,45 +7,47 @@ import { autoParseResults } from "../utils/parse";
 import VinTable from "./VinTable";
 import Controls from "./Controls";
 
+/**
+ * The main content of the panel. It's wrapped by VinProvider in the Panel component below.
+ */
 function PanelContent() {
-  // Panel visibility state.
+  // Panel visibility (true = shown).
   const [visible, setVisible] = useState(true);
-  // Get VIN list and update function from context.
+  // Grab VIN list and updateVin from the context.
   const { vinList, updateVin, clearAll, downloadCsv } = useVinContext();
-  // Manage currentIndex locally.
+
+  // The current VIN index (stored in localStorage).
   const [currentIndex, setCurrentIndex] = useState(0);
-  // Panel width state (in pixels).
+  // Panel width (resizable).
   const [width, setWidth] = useState(350);
-  // Whether the user is dragging the handle.
+  // Whether user is dragging the resize handle.
   const [dragging, setDragging] = useState(false);
-  // Ref to ensure auto-parsing happens only once per load.
+  // Ensure auto-parse runs only once per page load.
   const hasParsed = useRef(false);
-  const panelRef = useRef(null);
 
-  // Debug: log the current visible state.
-  useEffect(() => {
-    console.log("Panel visible:", visible);
-  }, [visible]);
-
-  // Load currentIndex on mount.
+  // On mount, load the currentIndex from localStorage.
   useEffect(() => {
     const idx = loadCurrentIndex();
     setCurrentIndex(idx);
   }, []);
 
-  // Persist currentIndex to localStorage whenever it changes.
+  // Save currentIndex to localStorage whenever it changes.
   useEffect(() => {
     saveCurrentIndex(currentIndex);
   }, [currentIndex]);
 
-  // Auto-parse VIN results on vinLookup page if available.
+  // Auto-parse if on a vinLookup page and we haven't parsed yet.
+  // Then advance to the next VIN if available.
   useEffect(() => {
     if (
       window.location.pathname.includes("vinLookup") &&
       vinList.length > 0 &&
       !hasParsed.current
     ) {
-      const parsedData = autoParseResults(); // Expects { year, make, model, recallCount } or null.
+      // Parse the page for vehicle data.
+      const parsedData = autoParseResults(); // {year, make, model, recallCount} or null
+
+      // If we got data, mark the current VIN as processed.
       if (parsedData) {
         updateVin(currentIndex, {
           ...vinList[currentIndex],
@@ -53,33 +55,42 @@ function PanelContent() {
           status: "Processed",
         });
       }
+
+      // Mark that we've parsed so we don't do it again on the same load.
       hasParsed.current = true;
+
+      // Move on to the next VIN if we have one left.
+      if (currentIndex + 1 < vinList.length) {
+        const newIndex = currentIndex + 1;
+        setCurrentIndex(newIndex);
+        saveCurrentIndex(newIndex);
+
+        // If we find a VIN field on the page, auto-fill the next VIN.
+        const nextVinInput = document.getElementById("VIN");
+        if (nextVinInput) {
+          nextVinInput.value = vinList[newIndex].vin;
+          nextVinInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      } else {
+        console.log("All VINs processed!");
+      }
     }
   }, [vinList, currentIndex, updateVin]);
 
-  // Listen for messages from the background script to toggle panel visibility.
+  // Listen for messages from the background script to toggle the panel.
   useEffect(() => {
-    if (
-      typeof chrome !== "undefined" &&
-      chrome.runtime &&
-      chrome.runtime.onMessage
-    ) {
-      const messageHandler = (msg) => {
-        console.log("Received message:", msg);
+    if (chrome?.runtime?.onMessage) {
+      const handleMessage = (msg) => {
         if (msg.togglePanel) {
           setVisible((prev) => !prev);
         }
       };
-
-      chrome.runtime.onMessage.addListener(messageHandler);
-      return () => {
-        chrome.runtime.onMessage.removeListener(messageHandler);
-      };
+      chrome.runtime.onMessage.addListener(handleMessage);
+      return () => chrome.runtime.onMessage.removeListener(handleMessage);
     }
-    return undefined;
   }, []);
 
-  // When the panel is visible, update the page margin-right to "squeeze in" the content.
+  // When visible, set document.body margin-right to panel width. Otherwise, reset margin.
   useEffect(() => {
     if (visible) {
       document.body.style.marginRight = `${width}px`;
@@ -87,11 +98,12 @@ function PanelContent() {
       document.body.style.marginRight = "";
     }
     return () => {
+      // Cleanup if the panel unmounts
       document.body.style.marginRight = "";
     };
   }, [visible, width]);
 
-  // Dragging handlers for the resizable handle.
+  // Handle dragging for the resize handle
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (dragging) {
@@ -114,14 +126,11 @@ function PanelContent() {
     };
   }, [dragging]);
 
-  // Toggle panel visibility from the in-panel toggle button.
-  const togglePanel = () => {
-    setVisible((prev) => !prev);
-  };
+  // Panel toggle from inside the panel.
+  const togglePanel = () => setVisible((prev) => !prev);
 
   return (
     <div
-      ref={panelRef}
       style={{
         width: visible ? `${width}px` : "0px",
         transition: "width 0.3s ease",
@@ -129,7 +138,7 @@ function PanelContent() {
       }}
       className="fixed top-0 right-0 h-screen bg-gray-900 text-white p-4 z-50"
     >
-      {/* Draggable handle on the left edge */}
+      {/* Draggable resize handle */}
       <div
         className="absolute left-0 top-0 h-full w-2 cursor-ew-resize"
         onMouseDown={(e) => {
@@ -138,13 +147,15 @@ function PanelContent() {
         }}
       ></div>
 
+      {/* Panel Header */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Recalls</h2>
         <PanelButton onClick={togglePanel} label="Toggle" />
         <PanelButton onClick={clearAll} label="Clear All" />
         <PanelButton onClick={downloadCsv} label="Download" />
       </div>
-      {/* Controls and VinTable now use the VIN context internally */}
+
+      {/* The rest of the panel UI */}
       <Controls />
       <VinTable />
       <div className="mt-2 text-sm">
@@ -156,6 +167,10 @@ function PanelContent() {
   );
 }
 
+/**
+ * Wrap the panel content in the VinProvider so that
+ * the entire panel has access to VIN context/state.
+ */
 function Panel() {
   return (
     <VinProvider>
@@ -166,6 +181,9 @@ function Panel() {
 
 export default Panel;
 
+/**
+ * Reusable small button
+ */
 function PanelButton({ onClick, label }) {
   return (
     <button
